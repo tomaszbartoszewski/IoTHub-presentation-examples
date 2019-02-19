@@ -21,9 +21,17 @@ IotHubConnectionString=$iotHubConnectionString.cs
 
 $serviceConfiguration | ConvertTo-Json | Out-File Service\conf.json
 
+$serviceConfiguration | ConvertTo-Json | Out-File Service_Just_Id_And_Value\conf.json
+
+$serviceConfiguration | ConvertTo-Json | Out-File Service_Send_Command\conf.json
+
+$serviceConfiguration | ConvertTo-Json | Out-File Service_Send_Command_Ack\conf.json
+
 
 $deviceConfiguration = @{
 DeviceConnectionString=$deviceConnectionString.cs;
 }
 
 $deviceConfiguration | ConvertTo-Json | Out-File Device\conf.json
+
+$deviceConfiguration | ConvertTo-Json | Out-File Device_Processing_Commands\conf.json

@@ -16,6 +16,8 @@ namespace Service
     {
         private static EventHubClient s_eventHubClient;
 
+        private static ServiceClient serviceClient;
+
         static async Task Main(string[] args)
         {
             Console.WriteLine("Read temperature messages. Ctrl-C to exit.\n");
@@ -23,6 +25,8 @@ namespace Service
             IConfiguration config = new ConfigurationBuilder()
                 .AddJsonFile("conf.json", true, true)
                 .Build();
+
+            serviceClient = ServiceClient.CreateFromConnectionString(config["IotHubConnectionString"]);
 
             var connectionString = new EventHubsConnectionStringBuilder(new Uri(config["EventHubsCompatibleEndpoint"]), config["EventHubsCompatiblePath"], config["IotHubSasKeyName"], config["IotHubSasKey"]);
             s_eventHubClient = EventHubClient.CreateFromConnectionString(connectionString.ToString());
@@ -44,6 +48,8 @@ namespace Service
             {
                 tasks.Add(ReceiveMessagesFromDeviceAsync(partition, cts.Token));
             }
+
+            tasks.Add(ReceiveFeedbackAsync(cts.Token));
 
             Task.WaitAll(tasks.ToArray());
 
@@ -67,18 +73,45 @@ namespace Service
                     string data = Encoding.UTF8.GetString(eventData.Body.Array);
                     Console.WriteLine("Message received on partition {0}:", partition);
 
-                    Console.WriteLine("  {0}:", data);
-                    Console.WriteLine("Application properties (set by device):");
-                    foreach (var prop in eventData.Properties)
-                    {
-                        Console.WriteLine("  {0}: {1}", prop.Key, prop.Value);
-                    }
-                    Console.WriteLine("System properties (set by IoT Hub):");
-                    foreach (var prop in eventData.SystemProperties)
-                    {
-                        Console.WriteLine("  {0}: {1}", prop.Key, prop.Value);
-                    }
+                    var temperature = double.Parse(data, System.Globalization.CultureInfo.InvariantCulture);
+                    var deviceId = eventData.SystemProperties["iothub-connection-device-id"].ToString();
+                    Console.WriteLine($"Device: {deviceId} - data: {temperature}");
+
+                    if (temperature > 23)
+                        await SendCloudToDeviceMessageAsync(deviceId, false);
+                    else if (temperature < 19)
+                        await SendCloudToDeviceMessageAsync(deviceId, true);
                 }
+            }
+        }
+
+        private static async Task SendCloudToDeviceMessageAsync(string deviceId, bool turnOn)
+        {
+            var message = turnOn ? "turn on" : "turn off";
+            var commandMessage = new Message(Encoding.ASCII.GetBytes(message));
+            commandMessage.Ack = DeliveryAcknowledgement.Full;
+            commandMessage.MessageId = Guid.NewGuid().ToString();
+            await serviceClient.SendAsync(deviceId, commandMessage);
+            Console.WriteLine($"Message \"{message}\" sent to device {deviceId} with Id: {commandMessage.MessageId}");
+        }
+
+        private async static Task ReceiveFeedbackAsync(CancellationToken ct)
+        {
+            var feedbackReceiver = serviceClient.GetFeedbackReceiver();
+
+            while (true)
+            {
+                if (ct.IsCancellationRequested) break;
+
+                var feedbackBatch = await feedbackReceiver.ReceiveAsync();
+                if (feedbackBatch == null) continue;
+
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Received feedback: {0}", 
+                    string.Join(", ", feedbackBatch.Records.Select(f => $"Message Id: {f.OriginalMessageId} status: {f.StatusCode}")));
+                Console.ResetColor();
+
+                await feedbackReceiver.CompleteAsync(feedbackBatch);
             }
         }
     }

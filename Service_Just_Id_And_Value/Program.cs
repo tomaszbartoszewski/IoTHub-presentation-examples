@@ -67,17 +67,9 @@ namespace Service
                     string data = Encoding.UTF8.GetString(eventData.Body.Array);
                     Console.WriteLine("Message received on partition {0}:", partition);
 
-                    Console.WriteLine("  {0}:", data);
-                    Console.WriteLine("Application properties (set by device):");
-                    foreach (var prop in eventData.Properties)
-                    {
-                        Console.WriteLine("  {0}: {1}", prop.Key, prop.Value);
-                    }
-                    Console.WriteLine("System properties (set by IoT Hub):");
-                    foreach (var prop in eventData.SystemProperties)
-                    {
-                        Console.WriteLine("  {0}: {1}", prop.Key, prop.Value);
-                    }
+                    var temperature = double.Parse(data, System.Globalization.CultureInfo.InvariantCulture);
+                    var deviceId = eventData.SystemProperties["iothub-connection-device-id"].ToString();
+                    Console.WriteLine($"Device: {deviceId} - data: {temperature}");
                 }
             }
         }
