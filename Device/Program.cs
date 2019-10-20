@@ -1,13 +1,9 @@
 ﻿using System;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.FileExtensions;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Azure.Devices.Client;
 using Newtonsoft.Json;
 using System.Text;
 using System.Threading.Tasks;
-using System.Threading;
-using System.Collections.Generic;
 
 namespace Device
 {
@@ -32,14 +28,18 @@ namespace Device
 
             while (true)
             {
-                double currentTemperature = minTemperature + rand.NextDouble() * 15;
-                var messageString = JsonConvert.SerializeObject(currentTemperature);
-                var message = new Message(Encoding.ASCII.GetBytes(messageString));
+                try
+                {
+                    double currentTemperature = minTemperature + rand.NextDouble() * 15;
+                    var messageString = JsonConvert.SerializeObject(currentTemperature);
+                    var message = new Message(Encoding.ASCII.GetBytes(messageString));
 
-                await s_deviceClient.SendEventAsync(message);
-                Console.WriteLine("{0} > Sending message: {1}", DateTime.Now, messageString);
+                    await s_deviceClient.SendEventAsync(message);
+                    Console.WriteLine("{0} > Sending message: {1}", DateTime.Now, messageString);
 
-                await Task.Delay(1000);
+                    await Task.Delay(1000);
+                }
+                catch {}
             }
         }
 

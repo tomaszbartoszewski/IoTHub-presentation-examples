@@ -2,8 +2,6 @@
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.Devices;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.FileExtensions;
-using Microsoft.Extensions.Configuration.Json;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Text;
@@ -40,7 +38,6 @@ namespace Service
             {
                 e.Cancel = true;
                 cts.Cancel();
-                Console.WriteLine("Exiting...");
             };
 
             var tasks = new List<Task>();

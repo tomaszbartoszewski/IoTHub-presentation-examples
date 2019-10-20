@@ -1,7 +1,5 @@
 ﻿using System;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.FileExtensions;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Azure.Devices.Client;
 using Newtonsoft.Json;
 using System.Text;
@@ -28,7 +26,6 @@ namespace Device
             {
                 e.Cancel = true;
                 cts.Cancel();
-                Console.WriteLine("Exiting...");
             };
 
             var tasks = new List<Task>
@@ -48,21 +45,25 @@ namespace Device
             double temperature = 18 + rand.NextDouble() * 3;
             while (true)
             {
-                if (ct.IsCancellationRequested) break;
+                try
+                {
+                    if (ct.IsCancellationRequested) break;
 
-                if (isOn && temperature < 26)
-                    temperature += 0.5;
-                if (!isOn && temperature > 13)
-                    temperature -= 0.5;
+                    if (isOn && temperature < 26)
+                        temperature += 0.5;
+                    if (!isOn && temperature > 13)
+                        temperature -= 0.5;
 
-                Console.WriteLine(temperature);
-                var messageString = JsonConvert.SerializeObject(temperature);
-                var message = new Message(Encoding.ASCII.GetBytes(messageString));
+                    Console.WriteLine(temperature);
+                    var messageString = JsonConvert.SerializeObject(temperature);
+                    var message = new Message(Encoding.ASCII.GetBytes(messageString));
 
-                await s_deviceClient.SendEventAsync(message);
-                Console.WriteLine("{0} > Sending message: {1}", DateTime.Now, messageString);
+                    await s_deviceClient.SendEventAsync(message);
+                    Console.WriteLine("{0} > Sending message: {1}", DateTime.Now, messageString);
 
-                await Task.Delay(1000);
+                    await Task.Delay(1000);
+                }
+                catch {}
             }
         }
 
@@ -70,21 +71,25 @@ namespace Device
         {
             while (true)
             {
-                if (ct.IsCancellationRequested) break;
+                try
+                {
+                    if (ct.IsCancellationRequested) break;
 
-                Message receivedMessage = await s_deviceClient.ReceiveAsync();
-                if (receivedMessage == null) continue;
+                    Message receivedMessage = await s_deviceClient.ReceiveAsync();
+                    if (receivedMessage == null) continue;
 
-                var command = Encoding.ASCII.GetString(receivedMessage.GetBytes());
+                    var command = Encoding.ASCII.GetString(receivedMessage.GetBytes());
 
-                if (string.Equals(command, "turn on", StringComparison.InvariantCultureIgnoreCase))
-                    isOn = true;
-                else if (string.Equals(command, "turn off", StringComparison.InvariantCultureIgnoreCase))
-                    isOn = false;
+                    if (string.Equals(command, "turn on", StringComparison.InvariantCultureIgnoreCase))
+                        isOn = true;
+                    else if (string.Equals(command, "turn off", StringComparison.InvariantCultureIgnoreCase))
+                        isOn = false;
 
-                Console.WriteLine($"Received command: {command}");
+                    Console.WriteLine($"Received command: {command}");
 
-                await s_deviceClient.CompleteAsync(receivedMessage);
+                    await s_deviceClient.CompleteAsync(receivedMessage);
+                }
+                catch {}
             }
         }
 
