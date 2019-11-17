@@ -57,7 +57,6 @@ namespace Service
             while (true)
             {
                 if (ct.IsCancellationRequested) break;
-                Console.WriteLine("Listening for messages on: " + partition);
                 var events = await eventHubReceiver.ReceiveAsync(100);
 
                 if (events == null) continue;
